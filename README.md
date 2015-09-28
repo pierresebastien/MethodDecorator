@@ -20,9 +20,9 @@ Define the ````IMethodDecorator```` interface (exact name) _without_ a namespace
 
 	public interface IMethodDecorator
 	{
-	    void OnEntry(MethodBase method);
-	    void OnExit(MethodBase method);
-	    void OnException(MethodBase method, Exception exception);
+	    void OnEntry(MethodBase method, object[] args);
+	    void OnExit(object returnValue, MethodBase method, object[] args);
+	    void OnException(Exception exception,MethodBase method, object[] args);
 	}
 	
 Define your method decorators by deriving from ````Attribute```` and implementing ````IMethodDecorator````:
@@ -59,27 +59,54 @@ Define your method decorators by deriving from ````Attribute```` and implementin
 	
 	public class Sample
 	{
-		public void Method()
+		public object Method(object arg1, object arg2)
 		{
 		    MethodBase method = methodof(Sample.Method, Sample);
 		    InterceptorAttribute attribute = (InterceptorAttribute) method.GetCustomAttributes(typeof(InterceptorAttribute), false)[0];
-		    attribute.OnEntry(method);
+		    
+			object[] args = new object[2] { (object) arg1, (object) arg2 };
+			attribute.OnEntry(method, args);
 		    try
 		    {
 		        Debug.WriteLine("Your Code");
-		        attribute.OnExit(method);
+				object returnValue = ...; // null if void method
+		        attribute.OnExit(returnValue, method, args);
+				return returnValue;
 		    }
 		    catch (Exception exception)
 		    {
-		        attribute.OnException(method, exception);
+		        attribute.OnException(exception, method, args);
 		        throw;
 		    }
 		}
 	}
 
-## Icon
+## Known limitations
 
-Icon courtesy of [The Noun Project](http://thenounproject.com)
+- Does not support method with multiple return instructions
+- No log when compiling
 
+## Licence
 
+The MIT License
+
+Copyright (c) Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 
