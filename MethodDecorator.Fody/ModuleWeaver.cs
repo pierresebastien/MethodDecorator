@@ -1,99 +1,77 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
+using MethodDecorator.Fody.Extensions;
 using Mono.Cecil;
 
-using System.Linq;
-
-using MethodDecorator.Fody;
-
-public class ModuleWeaver
+namespace MethodDecorator.Fody
 {
-    public ModuleDefinition ModuleDefinition { get; set; }
-    public IAssemblyResolver AssemblyResolver { get; set; }
-    public Action<string> LogInfo { get; set; }
-    public Action<string> LogWarning { get; set; }
+	// TODO: Add log
+	public class ModuleWeaver
+	{
+		private class AttributeMethodInfo
+		{
+			public TypeDefinition TypeDefinition { get; set; }
+			public MethodDefinition MethodDefinition { get; set; }
+			public CustomAttribute CustomAttribute { get; set; }
+		}
 
-    public void Execute()
-    {
-        LogInfo = s => { };
-        LogWarning = s => { };
+		public ModuleDefinition ModuleDefinition { get; set; }
+		public IAssemblyResolver AssemblyResolver { get; set; }
 
-        var markerTypeDefinitions = FindMarkerTypes();
+		public void Execute()
+		{
+			var methodDecoratorAttribute = Type.GetType("MethodDecorator.Attributes.DecoratorAttribute, MethodDecorator.Attributes");
+			if (methodDecoratorAttribute != null)
+			{
+				var decoratorTypeDefinitions = FindAttributeTypes(methodDecoratorAttribute);
+				if (decoratorTypeDefinitions.Any())
+				{
+					var decorator = new MethodDecorator(ModuleDefinition);
+					var methods = FindAttributedMethods(decoratorTypeDefinitions);
+					foreach (var method in methods)
+					{
+						decorator.Decorate(method.MethodDefinition, method.CustomAttribute, method.TypeDefinition);
+					}
+				}
+			}
+		}
 
-        var decorator = new MethodDecorator.Fody.MethodDecorator(ModuleDefinition);
+		private IList<TypeDefinition> FindAttributeTypes(Type type)
+		{
+			var allAttributes = ModuleDefinition.Types.Where(c => c.DerivesFrom(type));
+			return (from t in allAttributes where !t.IsAbstract select t).ToList();
+		}
 
-        var methods = FindAttributedMethods(markerTypeDefinitions);
-        foreach (var method in methods)
-            decorator.Decorate(method.Item1, method.Item2);
-    }
+		private IEnumerable<AttributeMethodInfo> FindAttributedMethods(IEnumerable<TypeDefinition> markerTypeDefintions)
+		{
+			return from topLevelType in ModuleDefinition.Types
+			       from type in GetAllTypes(topLevelType)
+			       from method in type.Methods
+			       where method.HasBody
+			       from attribute in method.CustomAttributes
+			       let attributeTypeDef = attribute.AttributeType.Resolve()
+			       from markerTypeDefinition in markerTypeDefintions
+			       where attributeTypeDef.DerivesFrom(markerTypeDefinition) ||
+			             attributeTypeDef.FullName == markerTypeDefinition.FullName
+			       select new AttributeMethodInfo
+				              {
+					              CustomAttribute = attribute,
+					              TypeDefinition = type,
+					              MethodDefinition = method
+				              };
+		}
 
-    private IList<TypeDefinition> FindMarkerTypes()
-    {
-        var markerTypeDefinitions = (from type in ModuleDefinition.Types
-                                     where type.FullName == "IMethodDecorator" || type.FullName == "MethodDecoratorAttribute"
-                                     select type).ToList();
+		private static IEnumerable<TypeDefinition> GetAllTypes(TypeDefinition type)
+		{
+			yield return type;
 
-        if (!markerTypeDefinitions.Any())
-        {
-            var markerTypeDefinitionsAll = (from type in ModuleDefinition.Types
-                                            where type.Name == "IMethodDecorator" || type.Name == "MethodDecoratorAttribute"
-                                            select type).ToList();
-            if(markerTypeDefinitionsAll.Any())
-                throw new WeavingException("Could not find type 'IMethodDecorator' or 'MethodDecoratorAttribute' (must be in the global namespace)");
-            throw new WeavingException("Could not find type 'IMethodDecorator' or 'MethodDecoratorAttribute'");
-        }
+			IEnumerable<TypeDefinition> allNestedTypes = from t in type.NestedTypes
+			                                             from t2 in GetAllTypes(t)
+			                                             select t2;
 
-        if (!markerTypeDefinitions.Any(HasCorrectMethods))
-            throw new WeavingException("IMethodDecorator does not contain correct OnEntry, OnExit and OnException methods");
-
-        return markerTypeDefinitions;
-    }
-
-    private static bool HasCorrectMethods(TypeDefinition type)
-    {
-        return type.Methods.Any(IsOnEntryMethod) && type.Methods.Any(IsOnExitMethod) && type.Methods.Any(IsOnExceptionMethod);
-    }
-
-    private static bool IsOnEntryMethod(MethodDefinition m)
-    {
-        return m.Name == "OnEntry" && m.Parameters.Count == 1 && m.Parameters[0].ParameterType.FullName == "System.Reflection.MethodBase";
-    }
-
-    private static bool IsOnExitMethod(MethodDefinition m)
-    {
-        return m.Name == "OnExit" && m.Parameters.Count == 1 && m.Parameters[0].ParameterType.FullName == "System.Reflection.MethodBase";
-    }
-
-    private static bool IsOnExceptionMethod(MethodDefinition m)
-    {
-        return m.Name == "OnException" && m.Parameters.Count == 2
-            && m.Parameters[0].ParameterType.FullName == "System.Reflection.MethodBase"
-            && m.Parameters[1].ParameterType.FullName == "System.Exception";
-    }
-
-    private IEnumerable<Tuple<MethodDefinition, CustomAttribute>> FindAttributedMethods(IEnumerable<TypeDefinition> markerTypeDefintions)
-    {
-        return from topLevelType in ModuleDefinition.Types
-               from type in GetAllTypes(topLevelType)
-               from method in type.Methods
-               where method.HasBody
-               from attribute in method.CustomAttributes
-               let attributeTypeDef = attribute.AttributeType.Resolve()
-               from markerTypeDefinition in markerTypeDefintions
-               where attributeTypeDef.Implements(markerTypeDefinition) || attributeTypeDef.DerivesFrom(markerTypeDefinition)
-               select Tuple.Create(method, attribute);
-    }
-
-    private static IEnumerable<TypeDefinition> GetAllTypes(TypeDefinition type)
-    {
-        yield return type;
-
-        var allNestedTypes = from t in type.NestedTypes
-                             from t2 in GetAllTypes(t)
-                             select t2;
-
-        foreach (var t in allNestedTypes)
-            yield return t;
-    }
+			foreach (TypeDefinition t in allNestedTypes)
+				yield return t;
+		}
+	}
 }
