@@ -45,6 +45,7 @@ NugetBuild/
 
 # ReSharper is a .NET coding add-in
 _ReSharper*
+*.DotSettings
 
 # Others
 [Bb]in
@@ -56,6 +57,7 @@ ClientBin
 stylecop.*
 ~$*
 *.dbmdl
+.vs/
 Generated_Code #added for RIA/Silverlight projects
 
 # Backup & report files from converting an old project file to a newer
@@ -74,4 +76,3 @@ Thumbs.db
 
 # Folder config file
 Desktop.ini
-

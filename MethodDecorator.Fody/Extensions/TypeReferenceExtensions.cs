@@ -9,7 +9,7 @@ namespace MethodDecorator.Fody.Extensions
 		{
 			while (typeReference != null)
 			{
-				if (typeReference == expectedBaseTypeReference)
+				if (typeReference.FullName == expectedBaseTypeReference.FullName)
 				{
 					return true;
 				}

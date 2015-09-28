@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using MethodDecorator.Fody.Extensions;
 using Mono.Cecil;
 
@@ -19,14 +18,9 @@ namespace MethodDecorator.Fody
 
 		public ModuleDefinition ModuleDefinition { get; set; }
 		public IAssemblyResolver AssemblyResolver { get; set; }
-		public Action<string> LogInfo { get; set; }
-		public Action<string> LogWarning { get; set; }
 
 		public void Execute()
 		{
-			LogInfo = s => { };
-			LogWarning = s => { };
-
 			var methodDecoratorAttribute = Type.GetType("MethodDecorator.Attributes.DecoratorAttribute, MethodDecorator.Attributes");
 			if (methodDecoratorAttribute != null)
 			{
@@ -47,40 +41,6 @@ namespace MethodDecorator.Fody
 		{
 			var allAttributes = ModuleDefinition.Types.Where(c => c.DerivesFrom(type));
 			return (from t in allAttributes where !t.IsAbstract select t).ToList();
-		}
-
-		// TODO: obsolete if attribute derives from metod decorator attribute & not abstract class
-		private static bool HasCorrectDecoratorMethods(TypeDefinition type)
-		{
-			return type.Methods.Any(IsOnEntryMethod) &&
-			       type.Methods.Any(IsOnExitMethod) &&
-			       type.Methods.Any(IsOnExceptionMethod);
-		}
-
-		private static bool IsOnEntryMethod(MethodDefinition m)
-		{
-			return m.Name == "OnEntry" &&
-			       m.Parameters.Count == 2 &&
-			       m.Parameters[0].ParameterType.FullName == typeof (MethodBase).FullName &&
-			       m.Parameters[1].ParameterType.FullName == typeof (object[]).FullName;
-		}
-
-		private static bool IsOnExitMethod(MethodDefinition m)
-		{
-			return m.Name == "OnExit" &&
-			       m.Parameters.Count == 3 &&
-			       m.Parameters[0].ParameterType.FullName == typeof (object).FullName &&
-			       m.Parameters[1].ParameterType.FullName == typeof (MethodBase).FullName &&
-			       m.Parameters[2].ParameterType.FullName == typeof (object[]).FullName;
-		}
-
-		private static bool IsOnExceptionMethod(MethodDefinition m)
-		{
-			return m.Name == "OnException" &&
-			       m.Parameters.Count == 3 &&
-			       m.Parameters[0].ParameterType.FullName == typeof (Exception).FullName &&
-			       m.Parameters[1].ParameterType.FullName == typeof (MethodBase).FullName &&
-			       m.Parameters[2].ParameterType.FullName == typeof (object[]).FullName;
 		}
 
 		private IEnumerable<AttributeMethodInfo> FindAttributedMethods(IEnumerable<TypeDefinition> markerTypeDefintions)

@@ -77,7 +77,7 @@ namespace MethodDecorator.Fody
 			var saveRetvalInstructions = GetSaveRetvalInstructions(processor, retvalVariableDefinition);
 			var callOnExitInstructions =
 				GetCallOnExitInstructions(processor, attributeVariableDefinition, methodVariableDefinition,
-				                          parametersVariableDefinition, retvalVariableDefinition, onExitMethodRef);
+										  parametersVariableDefinition, retvalVariableDefinition ?? method.AddVariable(parameterTypeRef), onExitMethodRef);
 			var methodBodyReturnInstructions = GetMethodBodyReturnInstructions(processor, retvalVariableDefinition);
 			var methodBodyReturnInstruction = methodBodyReturnInstructions.First();
 			var tryCatchLeaveInstructions = GetTryCatchLeaveInstructions(processor, methodBodyReturnInstruction);
@@ -91,9 +91,13 @@ namespace MethodDecorator.Fody
 			processor.InsertBefore(methodBodyFirstInstruction, getAttributeInstanceInstructions);
 			processor.InsertBefore(methodBodyFirstInstruction, createParametersArrayInstructions);
 			processor.InsertBefore(methodBodyFirstInstruction, callOnEntryInstructions);
+
+			// TODO: ICollection<Instruction> returnInstructions =
+			// method.Body.Instructions.ToList().Where(x => x.OpCode == OpCodes.Ret).ToList();
+
 			processor.InsertAfter(method.Body.Instructions.Last(), methodBodyReturnInstructions);
-			processor.InsertBefore(methodBodyReturnInstruction, callOnExitInstructions);
 			processor.InsertBefore(methodBodyReturnInstruction, saveRetvalInstructions);
+			processor.InsertBefore(methodBodyReturnInstruction, callOnExitInstructions);
 			processor.InsertBefore(methodBodyReturnInstruction, tryCatchLeaveInstructions);
 			processor.InsertBefore(methodBodyReturnInstruction, catchHandlerInstructions);
 			method.Body.ExceptionHandlers.Add(new ExceptionHandler(ExceptionHandlerType.Catch)
