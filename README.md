@@ -13,34 +13,36 @@ Nuget package http://nuget.org/packages/MethodDecorator.Fody
 To Install from the Nuget Package Manager Console 
     
     PM> Install-Package MethodDecorator.Fody
-    
-### Your Code
 
-Define the ````IMethodDecorator```` interface (exact name) _without_ a namespace:
-
-	public interface IMethodDecorator
+### Base Decorator Code	
+	
+	[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor, AllowMultiple = true, Inherited = true)]
+	public abstract class DecoratorAttribute : Attribute
 	{
-	    void OnEntry(MethodBase method, object[] args);
-	    void OnExit(object returnValue, MethodBase method, object[] args);
-	    void OnException(Exception exception,MethodBase method, object[] args);
+		public abstract void OnEntry(MethodBase method, object[] args);
+
+		public abstract void OnExit(object returnValue, MethodBase method, object[] args);
+
+		public abstract void OnException(Exception exception, MethodBase method, object[] args);
 	}
 	
-Define your method decorators by deriving from ````Attribute```` and implementing ````IMethodDecorator````:
+### Your Code
 
-	[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor)]
-	public class InterceptorAttribute : Attribute, IMethodDecorator
+Define your method decorators by deriving from ````DecoratorAttribute````:
+
+	public class InterceptorAttribute : DecoratorAttribute
 	{
-	    public void OnEntry(MethodBase method)
+	    public void OnEntry(MethodBase method, object[] args)
 	    {
 	        TestMessages.Record(string.Format("OnEntry: {0}", method.DeclaringType.FullName + "." + method.Name));
 	    }
 	
-	    public void OnExit(MethodBase method)
+	    public void OnExit(object returnValue, MethodBase method, object[] args)
 	    {
 	        TestMessages.Record(string.Format("OnExit: {0}", method.DeclaringType.FullName + "." + method.Name));
 	    }
 	
-	    public void OnException(MethodBase method, Exception exception)
+	    public void OnException(Exception exception, MethodBase method, object[] args)
 	    {
 	        TestMessages.Record(string.Format("OnException: {0} - {1}: {2}", method.DeclaringType.FullName + "." + method.Name, exception.GetType(), exception.Message));
 	    }
