@@ -32,17 +32,17 @@ Define your method decorators by deriving from ````DecoratorAttribute````:
 
 	public class InterceptorAttribute : DecoratorAttribute
 	{
-	    public void OnEntry(MethodBase method, object[] args)
+	    public override void OnEntry(MethodBase method, object[] args)
 	    {
 	        TestMessages.Record(string.Format("OnEntry: {0}", method.DeclaringType.FullName + "." + method.Name));
 	    }
 	
-	    public void OnExit(object returnValue, MethodBase method, object[] args)
+	    public override void OnExit(object returnValue, MethodBase method, object[] args)
 	    {
 	        TestMessages.Record(string.Format("OnExit: {0}", method.DeclaringType.FullName + "." + method.Name));
 	    }
 	
-	    public void OnException(Exception exception, MethodBase method, object[] args)
+	    public override void OnException(Exception exception, MethodBase method, object[] args)
 	    {
 	        TestMessages.Record(string.Format("OnException: {0} - {1}: {2}", method.DeclaringType.FullName + "." + method.Name, exception.GetType(), exception.Message));
 	    }
