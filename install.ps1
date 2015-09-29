@@ -1,18 +1,5 @@
 ﻿param($installPath, $toolsPath, $package, $project)
 
-
-function RemoveForceProjectLevelHack($project)
-{
-    Write-Host "RemoveForceProjectLevelHack" 
-	Foreach ($item in $project.ProjectItems) 
-	{
-		if ($item.Name -eq "Fody_ToBeDeleted.txt")
-		{
-			$item.Delete()
-		}
-	}
-}
-
 function FlushVariables()
 {
     Write-Host "Flushing environment variables"
@@ -57,23 +44,6 @@ function Update-FodyConfig($addinName, $project)
     $xml.Save($fodyWeaversPath)
 }
 
-function Fix-ReferencesCopyLocal($package, $project)
-{
-    Write-Host "Fix-ReferencesCopyLocal $($package.Id)"
-    $asms = $package.AssemblyReferences | %{$_.Name}
- 
-    foreach ($reference in $project.Object.References)
-    {
-        if ($asms -contains $reference.Name + ".dll")
-        {
-            if($reference.CopyLocal -eq $true)
-            {
-                $reference.CopyLocal = $false;
-            }
-        }
-    }
-}
-
 function UnlockWeaversXml($project)
 {
     $fodyWeaversProjectItem = $project.ProjectItems.Item("FodyWeavers.xml");
@@ -87,8 +57,4 @@ function UnlockWeaversXml($project)
 
 UnlockWeaversXml($project)
 
-RemoveForceProjectLevelHack $project
-
 Update-FodyConfig $package.Id.Replace(".Fody", "") $project
-
-Fix-ReferencesCopyLocal $package $project
