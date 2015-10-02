@@ -8,11 +8,11 @@ Compile time decorator pattern via IL rewriting
 
 ## Nuget
 
-Nuget package http://nuget.org/packages/MethodDecorator.Fody 
+Nuget package http://nuget.org/packages/MethodDecoratorExtension.Fody 
 
 To Install from the Nuget Package Manager Console 
     
-    PM> Install-Package MethodDecorator.Fody
+    PM> Install-Package MethodDecoratorExtension.Fody
 
 ### Base Decorator Code	
 	
